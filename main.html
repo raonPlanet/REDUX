@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
-<body>
+    <head>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/redux/4.2.1/redux.min.js" integrity="sha512-1/8Tj23BRrWnKZXeBruk6wTnsMJbi/lJsk9bsRgVwb6j5q39n0A00gFjbCTaDo5l5XrPVv4DZXftrJExhRF/Ug==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    </head>
+    <body>
     <div id="subject"></div>
     <div id="TOC"></div>
     <div id="control"></div>
@@ -15,11 +18,26 @@
             `
         }
         function TOC(){
+            var state = store.getState();
+            var i = 0;
+            var liTags = '';
+            console.log(state.contents.length);
+            while(i<state.contents.length){
+                liTags +=  `
+                    <li>
+                        <a onclick="
+                            event.preventDefault();
+                            var action ={type:'SELECT',id:${state.contents[i].id}}
+                            store.dispatch(action);
+                        " href="${state.contents[i].id}">${state.contents[i].title}</a>
+                    </li>
+                `;
+                i = i + 1;
+            }
             document.querySelector('#TOC').innerHTML = `
                 <nav>
                     <ol>
-                        <li><a href="1.html">HTML</a></li>
-                        <li><a href="2.html">CSS</a></li>
+                       ${liTags}
                     </ol>
                 </nav>
             `
@@ -27,26 +45,105 @@
         function control(){
             document.querySelector('#control').innerHTML = `
             <ul>
-                <li><a href="/create">create</a></li>
+                <li><a onclick="
+                        event.preventDefault();
+                    " href="/create">create</a></li>
                 <li><input type="button" value="delete"></li>
             </ul>   
             `
         }
+        
         function article(){
-            document.querySelector('#content').innerHTML = `
-            <article>                
-                <h2>HTML</h2>
-                HTML is ...
-            </article>
-            `
+            var state = store.getState();
+            if (state.mode ==='create'){
+                document.querySelector('#content').innerHTML = `
+                <article>
+                    <form onsubmit="
+                        event.preventDefault(); 
+                        var _title = this.title.value;
+                        var _desc = this.desc.value;
+                        console.log(_title,_desc);
+                        store.dispatch({
+                            type:'CREATE', 
+                            title: _title,
+                            desc: _desc
+                        })
+                    ">
+                        <p>
+                            <input type="text" name="title" placeholder="title">
+                        </p>
+                        <p>
+                            <textarea name="desc" placeholder="Description"></textarea>
+                        </p>
+                        <p>
+                            <input type="submit">
+                        </p>
+                    </form>
+                </article>
+              `
+            }else if (state.mode==='read'){
+                var i = 0;
+                var aTitle,aDesc;
+                while(i < state.contents.length){
+                    if  (state.contents[i].id === state.selected_id){
+                        aTitle = state.contents[i].title;
+                        aDesc = state.contents[i].desc;
+                        break;
+                    }
+                    i = i + 1;
+                }
+                document.querySelector('#content').innerHTML = `
+                    <article>                
+                        <h2>${aTitle}</h2>
+                        ${aDesc}               
+                    </article>
+                    `
+            }else if (state.mode='delete'){
+
+            }
+
+           
         }
+        function reducer(state,action){
+
+            if (state === undefined){
+                return {
+                    max_id: 2,
+                    mode:'create',
+                    selected_id: 2,
+                    contents:[
+                        {id:1, title: 'HTML',desc: 'HTML is ..'},
+                        {id:2, title: 'CSS',desc: 'CSS is ..'}
+                    ]
+                }
+            }
+            var newState;
+            if(action.type==='SELECT'){
+                newState = Object.assign({},state,{selected_id: action.id});
+            }else if(action.type==='CREATE'){
+                var newMaxId = state.max_id + 1;
+                var newContents = state.contents.concat();
+                newContents.push({id:newMaxId,title: action.title,desc: action.desc});
+                newState = Object.assign({},state,{
+                    max_id: newMaxId,
+                    contents:newContents,
+                    mode:'read'
+                })
+            }
+            console.log(action,state,newState);
+            return newState;
+            
+        }
+        var store = Redux.createStore(reducer);
+        store.subscribe(article);
+        store.subscribe(TOC);
         subject();
         TOC();
         control();
         article();
     </script>                           
               
-       
+    
         
         
       
